@@ -6,8 +6,7 @@ import re
 
 CALENDAR_FILE = "calendar.txt"
 
-
-class Calendar:
+class Calendar():
     def __init__(self) -> None:
         try:
             self._load()
@@ -95,6 +94,7 @@ class Calendar:
             self.clear_calendar
         ]
 
+@tool
 def use_calendar(message:str) -> str:
     calendar = Calendar()
 
@@ -113,5 +113,3 @@ def use_calendar(message:str) -> str:
         return response.message["content"][0]["text"] #type: ignore
     except (KeyError, IndexError):
         return "I'm sorry, I couldn't retrieve the information."
-
-print(use_calendar("For next Tuesday through Friday, June 9th to 12th, add 'Spanish Class at 2:00 PM' on Tuesday and Wednesday, and 'Spanish Class at 1:00 PM' on Thursday and Friday. Also, clear any existing entries in the calendar."))
