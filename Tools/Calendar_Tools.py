@@ -96,6 +96,7 @@ class Calendar():
 
 @tool
 def use_calendar(message:str) -> str:
+    """Use the calendar tools to manage your calendar effectively."""
     calendar = Calendar()
 
     model = OllamaModel(

@@ -94,8 +94,10 @@ class Weather():
 
     def list_weather_tools(self) -> list:
         return [self.get_current_weather, self.get_forecast]
-    
+
+@tool
 def use_weather_tools(message:str) -> str:
+    """Use the weather tools to get current weather or forecasts for a city."""
     weather = Weather()
 
     model = OllamaModel(
@@ -114,5 +116,3 @@ def use_weather_tools(message:str) -> str:
         return response.message["content"][0]["text"] #type: ignore
     except (KeyError, IndexError):
         return "I'm sorry, I couldn't retrieve the information."
-
-print(use_weather_tools("What's the current weather in Reno? What does it look like for next week?"))
