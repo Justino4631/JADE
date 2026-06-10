@@ -4,7 +4,7 @@ import datetime
 import time
 import re
 
-CALENDAR_FILE = "calendar.txt"
+CALENDAR_FILE = "calendar/calendar.txt"
 
 class Calendar():
     def __init__(self) -> None:
