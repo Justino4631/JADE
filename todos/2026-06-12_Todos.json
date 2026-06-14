@@ -1,0 +1,15 @@
+{
+  "date": "2026-06-12",
+  "todos": [
+    {
+      "task": "Spanish HW",
+      "completed": false,
+      "tag": ""
+    },
+    {
+      "task": "Call Liz",
+      "completed": false,
+      "tag": ""
+    }
+  ]
+}
