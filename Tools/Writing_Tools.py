@@ -180,6 +180,7 @@ class Writer():
     def list_writing_tools(self) -> list:
         return [self.create_notes_entry, self.create_journal_entry, self.create_todo_entry, self.list_writing_entries, self.read_entry, self.complete_todo, self.add_task, self.update_entry, self.get_today]
 
+@tool
 def use_writing_tools(message: str) -> str:
 
     writer = Writer()
@@ -201,5 +202,3 @@ def use_writing_tools(message: str) -> str:
         return response.message["content"][0]['text'] #type: ignore
     except Exception as e:
         return f"An error occurred when doing your request- try again: {e}"
-
-print(use_writing_tools("Alright, clear the todos for today. I forgot to do my Spanish HW and Call Liz."))

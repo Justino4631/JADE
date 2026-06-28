@@ -1,0 +1,17 @@
+model_name: "jade"
+target_phrases:
+  - "jade"
+  - "jaide"
+n_samples: 10000         
+model:
+  model_type: conv_attention
+  model_size: small
+  steps: 25000
+training_data:
+  use_openwakeword_features: true
+  include_fringe_testing: true
+
+batch_n_per_class:
+  ACAV100M_sample: 128 
+  adversarial_negative: 32
+  positive: 64

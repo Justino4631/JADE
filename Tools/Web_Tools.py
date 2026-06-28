@@ -107,6 +107,7 @@ class WebTools():
     def list_web_tools(self) -> list:
         return [self.definition, self.get_wikipedia_possible_searches, self.get_wikipedia_summary, self.random_wikipedia_article_summary, self.get_news_headlines, self.get_stock_prices]
 
+@tool
 def use_web_tools(message: str) -> str:
     web_tools = WebTools()
 
@@ -123,5 +124,3 @@ def use_web_tools(message: str) -> str:
 
     response = agent(message)
     return response.message["content"][0]["text"] #type: ignore
-
-use_web_tools("What's up today? What are the news headlines and teach me something new!")

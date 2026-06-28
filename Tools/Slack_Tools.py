@@ -293,6 +293,7 @@ class SlackBot():
             self.send_dm, self.reply_to_thread
         ]
 
+@tool
 def use_slack_bot(message: str) -> str:
     slackbot = SlackBot(WebClient(token=os.getenv("SLACK_BOT_TOKEN")))
 

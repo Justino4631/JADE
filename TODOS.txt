@@ -1,0 +1,5 @@
+1. Finish "Jade" Wake Word Model + test
+2. Train or implement speech to text model, test connection with global agent
+3. Connect + test microphone to see if speech to text and wake word run on rpi from mic
+4. Fix speaker or solder new speaker and test audio
+5. Connect agent response to speaker and test full pipeline
