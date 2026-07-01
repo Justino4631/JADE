@@ -41,11 +41,11 @@ try:
 
         jade_score = prediction.get("jade", 0.0) #type: ignore
 
-        if jade_score > 0.05:
+        if jade_score > 0.03:
             status_bar = "█" * int(jade_score * 20)
             print(f"Listening... Raw Confidence [{status_bar:<20}] {jade_score:.2f}", end='\r')
 
-        if jade_score > 0.40:
+        if jade_score > 0.075:
             print(f"\nSUCCESS: Jade detected! Raw confidence: {jade_score:.2f}\n")
 
 except KeyboardInterrupt:
