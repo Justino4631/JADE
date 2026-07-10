@@ -29,7 +29,8 @@ mic_stream = p.open(
 print(f"Mic active (Volume Gain: {GAIN}x), say 'Jade' to test")
 
 try:
-    while True:
+    activated = False
+    while activated is not True:
         raw_audio_bytes = mic_stream.read(CHUNK_SIZE, exception_on_overflow=False)
         audio_array = np.frombuffer(raw_audio_bytes, dtype=np.int16)
 
@@ -45,8 +46,9 @@ try:
             status_bar = "█" * int(jade_score * 20)
             print(f"Listening... Raw Confidence [{status_bar:<20}] {jade_score:.2f}", end='\r')
 
-        if jade_score > 0.075:
-            print(f"\nSUCCESS: Jade detected! Raw confidence: {jade_score:.2f}\n")
+        if jade_score > 0.08:
+            print(f"\nJade detected! Raw confidence: {jade_score:.2f}\n")
+            activated = True
 
 except KeyboardInterrupt:
     print(f"\nStopping local audio test...")

@@ -1,0 +1,183 @@
+2026-07-01 16:19:23.565 - RealTimeSTT: realtimestt - INFO - Starting RealTimeSTT
+2026-07-01 16:19:24.683 - RealTimeSTT: realtimestt - INFO - Initializing audio recording (creating pyAudio input stream, sample rate: 16000 buffer size: 512
+2026-07-01 16:19:24.717 - RealTimeSTT: realtimestt - INFO - Initializing faster_whisper realtime transcription model tiny.en, default device: cuda, compute type: default, device index: 0, download root: None
+2026-07-01 16:19:31.154 - RealTimeSTT: realtimestt - ERROR - Error initializing faster_whisper realtime transcription model: [WinError 5] Access is denied: 'C:\\Users\\Justi\\.cache\\huggingface\\hub\\models--Systran--faster-whisper-tiny.en'
+Traceback (most recent call last):
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\RealtimeSTT\core\initialization.py", line 466, in _initialize_realtime_transcription_model
+    recorder.realtime_transcription_model = create_transcription_engine(
+                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        recorder.realtime_transcription_engine,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<13 lines>...
+        ),
+        ^^
+    )
+    ^
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\RealtimeSTT\transcription_engines\factory.py", line 61, in create_transcription_engine
+    return engine_cls(config)
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\RealtimeSTT\transcription_engines\faster_whisper_engine.py", line 45, in __init__
+    model = faster_whisper.WhisperModel(
+        model_size_or_path=self.config.model,
+    ...<3 lines>...
+        download_root=self.config.download_root,
+    )
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\faster_whisper\transcribe.py", line 681, in __init__
+    model_path = download_model(
+        model_size_or_path,
+    ...<3 lines>...
+        use_auth_token=use_auth_token,
+    )
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\faster_whisper\utils.py", line 116, in download_model
+    return huggingface_hub.snapshot_download(repo_id, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\huggingface_hub\utils\_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\huggingface_hub\_snapshot_download.py", line 449, in snapshot_download
+    thread_map(
+    ~~~~~~~~~~^
+        _inner_hf_hub_download,
+        ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        tqdm_class=tqdm_class,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\tqdm\contrib\concurrent.py", line 69, in thread_map
+    return _executor_map(ThreadPoolExecutor, fn, *iterables, **tqdm_kwargs)
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\tqdm\contrib\concurrent.py", line 51, in _executor_map
+    return list(tqdm_class(ex.map(fn, *iterables, chunksize=chunksize), **kwargs))
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\tqdm\std.py", line 1169, in __iter__
+    for obj in iterable:
+               ^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\_base.py", line 625, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\_base.py", line 318, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\_base.py", line 460, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\_base.py", line 402, in __get_result
+    raise self._exception
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\huggingface_hub\_snapshot_download.py", line 429, in _inner_hf_hub_download
+    hf_hub_download(  # type: ignore
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+        repo_id,
+        ^^^^^^^^
+    ...<14 lines>...
+        dry_run=dry_run,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\huggingface_hub\utils\_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\huggingface_hub\file_download.py", line 986, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+        # Destination
+    ...<15 lines>...
+        dry_run=dry_run,
+    )
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\huggingface_hub\file_download.py", line 1158, in _hf_hub_download_to_cache_dir
+    os.makedirs(os.path.dirname(blob_path), exist_ok=True)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen os>", line 218, in makedirs
+  File "<frozen os>", line 228, in makedirs
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Justi\\.cache\\huggingface\\hub\\models--Systran--faster-whisper-tiny.en'
+2026-07-01 16:28:36.465 - RealTimeSTT: realtimestt - INFO - Starting RealTimeSTT
+2026-07-01 16:28:37.746 - RealTimeSTT: realtimestt - INFO - Initializing audio recording (creating pyAudio input stream, sample rate: 16000 buffer size: 512
+2026-07-01 16:28:37.781 - RealTimeSTT: realtimestt - INFO - Initializing faster_whisper realtime transcription model tiny.en, default device: cuda, compute type: default, device index: 0, download root: None
+2026-07-01 16:29:06.102 - RealTimeSTT: realtimestt - DEBUG - faster_whisper realtime speech to text transcription model initialized successfully
+2026-07-01 16:29:06.102 - RealTimeSTT: realtimestt - INFO - Initializing WebRTC voice with Sensitivity 3
+2026-07-01 16:29:06.102 - RealTimeSTT: realtimestt - DEBUG - WebRTC VAD voice activity detection engine initialized successfully
+2026-07-01 16:29:06.104 - RealTimeSTT: realtimestt - DEBUG - Silero VAD auto backend raw_onnx_ifless unavailable
+Traceback (most recent call last):
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\RealtimeSTT\core\silero_vad.py", line 176, in _create_auto_vad
+    return _create_raw_onnx_vad(
+        model_name,
+    ...<4 lines>...
+        chunk_samples,
+    )
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\RealtimeSTT\core\silero_vad.py", line 225, in _create_raw_onnx_vad
+    raise SileroVadError(
+    ...<3 lines>...
+    )
+RealtimeSTT.core.silero_vad.SileroVadError: Could not find silero_vad_op18_ifless.onnx in the installed silero_vad package or the local torch hub cache. Install 'silero-vad' or pass silero_onnx_model_path.
+2026-07-01 16:29:06.108 - RealTimeSTT: realtimestt - DEBUG - Silero VAD auto backend raw_onnx unavailable
+Traceback (most recent call last):
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\RealtimeSTT\core\silero_vad.py", line 176, in _create_auto_vad
+    return _create_raw_onnx_vad(
+        model_name,
+    ...<4 lines>...
+        chunk_samples,
+    )
+  File "C:\Users\Justi\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\RealtimeSTT\core\silero_vad.py", line 225, in _create_raw_onnx_vad
+    raise SileroVadError(
+    ...<3 lines>...
+    )
+RealtimeSTT.core.silero_vad.SileroVadError: Could not find silero_vad.onnx in the installed silero_vad package or the local torch hub cache. Install 'silero-vad' or pass silero_onnx_model_path.
+2026-07-01 16:29:12.085 - RealTimeSTT: realtimestt - DEBUG - Silero VAD voice activity detection engine initialized successfully with backend pytorch_cpu
+2026-07-01 16:29:12.498 - RealTimeSTT: realtimestt - WARNING - Audio queue size exceeds latency limit. Current size: 855. Discarding old audio chunks.
+2026-07-01 16:29:12.499 - RealTimeSTT: realtimestt - DEBUG - Starting realtime worker
+2026-07-01 16:29:12.500 - RealTimeSTT: realtimestt - DEBUG - Waiting for main transcription model to start
+2026-07-01 16:29:12.500 - RealTimeSTT: realtimestt - DEBUG - Main transcription model ready
+2026-07-01 16:29:12.502 - RealTimeSTT: realtimestt - DEBUG - RealtimeSTT initialization completed successfully
+2026-07-01 16:29:12.503 - RealTimeSTT: realtimestt - INFO - Setting listen time
+2026-07-01 16:29:12.503 - RealTimeSTT: realtimestt - INFO - State changed from 'inactive' to 'listening'
+2026-07-01 16:29:12.542 - RealTimeSTT: realtimestt - DEBUG - Waiting for recording start
+2026-07-01 16:30:15.771 - RealTimeSTT: realtimestt - INFO - voice activity detected
+2026-07-01 16:30:15.771 - RealTimeSTT: realtimestt - INFO - recording started
+2026-07-01 16:30:15.771 - RealTimeSTT: realtimestt - INFO - State changed from 'listening' to 'recording'
+2026-07-01 16:30:15.772 - RealTimeSTT: realtimestt - DEBUG - Waiting for recording stop
+2026-07-01 16:30:15.922 - RealTimeSTT: realtimestt - DEBUG - Current realtime buffer size: 18944
+2026-07-01 16:30:16.867 - RealTimeSTT: realtimestt - DEBUG - Realtime text detected (timer): Hello.
+2026-07-01 16:30:16.931 - RealTimeSTT: realtimestt - INFO - recording stopped
+2026-07-01 16:30:16.933 - RealTimeSTT: realtimestt - DEBUG - No samples removed, final audio length: 34816
+2026-07-01 16:30:16.933 - RealTimeSTT: realtimestt - INFO - State changed from 'recording' to 'inactive'
+2026-07-01 16:30:16.952 - RealTimeSTT: realtimestt - INFO - State changed from 'inactive' to 'transcribing'
+2026-07-01 16:30:16.955 - RealTimeSTT: realtimestt - DEBUG - Adding transcription request, no early transcription started
+2026-07-01 16:30:16.967 - RealTimeSTT: realtimestt - DEBUG - Receive from parent_transcription_pipe after sendiung transcription request, transcribe_count: 1
+2026-07-01 16:30:17.071 - RealTimeSTT: realtimestt - DEBUG - Receive from parent_transcription_pipe after sendiung transcription request, transcribe_count: 1
+2026-07-01 16:30:17.173 - RealTimeSTT: realtimestt - DEBUG - Receive from parent_transcription_pipe after sendiung transcription request, transcribe_count: 1
+2026-07-01 16:30:17.274 - RealTimeSTT: realtimestt - INFO - State changed from 'transcribing' to 'inactive'
+2026-07-01 16:30:17.314 - RealTimeSTT: realtimestt - DEBUG - Model small.en completed transcription in 0.36 seconds
+2026-07-01 16:30:17.315 - RealTimeSTT: realtimestt - INFO - Setting listen time
+2026-07-01 16:30:17.315 - RealTimeSTT: realtimestt - INFO - State changed from 'inactive' to 'listening'
+2026-07-01 16:30:17.319 - RealTimeSTT: realtimestt - DEBUG - Waiting for recording start
+2026-07-01 16:30:20.512 - RealTimeSTT: realtimestt - INFO - voice activity detected
+2026-07-01 16:30:20.513 - RealTimeSTT: realtimestt - INFO - recording started
+2026-07-01 16:30:20.513 - RealTimeSTT: realtimestt - INFO - State changed from 'listening' to 'recording'
+2026-07-01 16:30:20.514 - RealTimeSTT: realtimestt - DEBUG - Waiting for recording stop
+2026-07-01 16:30:20.656 - RealTimeSTT: realtimestt - DEBUG - Current realtime buffer size: 18944
+2026-07-01 16:30:20.773 - RealTimeSTT: realtimestt - DEBUG - Realtime text detected (timer): me normally
+2026-07-01 16:30:20.807 - RealTimeSTT: realtimestt - DEBUG - Current realtime buffer size: 20992
+2026-07-01 16:30:20.851 - RealTimeSTT: realtimestt - DEBUG - Realtime text detected (timer): We normally...
+2026-07-01 16:30:20.958 - RealTimeSTT: realtimestt - DEBUG - Current realtime buffer size: 23040
+2026-07-01 16:30:21.001 - RealTimeSTT: realtimestt - DEBUG - Realtime text detected (timer): We normally...
+2026-07-01 16:30:21.110 - RealTimeSTT: realtimestt - DEBUG - Current realtime buffer size: 26112
+2026-07-01 16:30:21.187 - RealTimeSTT: realtimestt - DEBUG - Realtime text detected (timer): We normally at
+2026-07-01 16:30:21.260 - RealTimeSTT: realtimestt - DEBUG - Current realtime buffer size: 28160
+2026-07-01 16:30:21.343 - RealTimeSTT: realtimestt - DEBUG - Realtime text detected (timer): We normally as...
+2026-07-01 16:30:21.411 - RealTimeSTT: realtimestt - DEBUG - Current realtime buffer size: 30208
+2026-07-01 16:30:21.457 - RealTimeSTT: realtimestt - DEBUG - Realtime text detected (timer): We normally as...
+2026-07-01 16:30:22.171 - RealTimeSTT: realtimestt - INFO - recording stopped
+2026-07-01 16:30:22.175 - RealTimeSTT: realtimestt - DEBUG - No samples removed, final audio length: 43008
+2026-07-01 16:30:22.175 - RealTimeSTT: realtimestt - INFO - State changed from 'recording' to 'inactive'
+2026-07-01 16:30:22.212 - RealTimeSTT: realtimestt - INFO - State changed from 'inactive' to 'transcribing'
+2026-07-01 16:30:22.216 - RealTimeSTT: realtimestt - DEBUG - Adding transcription request, no early transcription started
+2026-07-01 16:30:22.237 - RealTimeSTT: realtimestt - DEBUG - Receive from parent_transcription_pipe after sendiung transcription request, transcribe_count: 1
+2026-07-01 16:30:22.347 - RealTimeSTT: realtimestt - DEBUG - Receive from parent_transcription_pipe after sendiung transcription request, transcribe_count: 1
+2026-07-01 16:30:22.384 - RealTimeSTT: realtimestt - INFO - State changed from 'transcribing' to 'inactive'
+2026-07-01 16:30:22.426 - RealTimeSTT: realtimestt - DEBUG - Model small.en completed transcription in 0.21 seconds
+2026-07-01 16:30:22.428 - RealTimeSTT: realtimestt - INFO - Setting listen time
+2026-07-01 16:30:22.428 - RealTimeSTT: realtimestt - INFO - State changed from 'inactive' to 'listening'
+2026-07-01 16:30:22.432 - RealTimeSTT: realtimestt - DEBUG - Waiting for recording start
+2026-07-01 16:30:23.460 - RealTimeSTT: realtimestt - INFO - KeyboardInterrupt in wait_audio, shutting down
+2026-07-01 16:30:23.460 - RealTimeSTT: realtimestt - DEBUG - Finishing recording thread
+2026-07-01 16:30:23.471 - RealTimeSTT: realtimestt - DEBUG - Realtime worker stopped
+2026-07-01 16:30:23.483 - RealTimeSTT: realtimestt - DEBUG - Terminating reader process
+2026-07-01 16:30:24.367 - RealTimeSTT: realtimestt - DEBUG - Terminating transcription process
+2026-07-01 16:30:24.660 - RealTimeSTT: realtimestt - DEBUG - Finishing realtime thread
+2026-07-01 16:30:24.814 - RealTimeSTT: realtimestt - INFO - KeyboardInterrupt in text() method

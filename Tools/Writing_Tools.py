@@ -1,176 +1,176 @@
 from strands import tool, Agent
 from strands.models.ollama import OllamaModel
 from datetime import date
-import time
 import json
-import os
+from pathlib import Path
 
-class Writer():
+
+class Writer:
     def __init__(self) -> None:
-        pass
+        self.base_dir = Path.cwd()
+        for folder_name in ["notes", "todos", "journals"]:
+            (self.base_dir / folder_name).mkdir(parents=True, exist_ok=True)
+
+    def _entry_path(self, type_entry: str, file_title: str) -> Path:
+        return self.base_dir / type_entry / f"{file_title}.json"
+
+    def _write_json(self, path: Path, payload: dict) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as file:
+            json.dump(payload, file, indent=2)
 
     @tool
     def create_notes_entry(self, content: str) -> None:
         """Create a new notes entry."""
-        today = date.today()
-        today = today.strftime("%Y-%m-%d")
+        today = date.today().strftime("%Y-%m-%d")
         file_name = f"{today}_Notes"
+        payload = {"date": today, "content": content}
+        self._write_json(self._entry_path("notes", file_name), payload)
 
-        json_to_write = {
-            "date": today,
-            "content": content
-        }
-
-        with open(f"notes/{file_name}.json", "w") as file:
-            json.dump(json_to_write, file)
-    
     @tool
-    def create_todo_entry(self, tasks: list, tags: list = []) -> None:
+    def create_todo_entry(self, tasks: list, tags: list | None = None) -> None:
         """Create a new todo entry."""
-        today = date.today()
-        today = today.strftime("%Y-%m-%d")
+        tags = tags or []
+        today = date.today().strftime("%Y-%m-%d")
         file_name = f"{today}_Todos"
-
-        json_to_write = {
+        payload = {
             "date": today,
             "todos": [
-                {
-                    "task": task,
-                    "completed": False,
-                    "tag": tags[i] if i < len(tags) else ""
-                }
+                {"task": task, "completed": False, "tag": tags[i] if i < len(tags) else ""}
                 for i, task in enumerate(tasks)
-            ]
+            ],
         }
+        self._write_json(self._entry_path("todos", file_name), payload)
 
-        with open(f"todos/{file_name}.json", "w") as file:
-            json.dump(json_to_write, file, indent=2)
-    
     @tool
     def create_journal_entry(self, content: str) -> None:
         """Create a new journal entry."""
-        today = date.today()
-        today = today.strftime("%Y-%m-%d")
+        today = date.today().strftime("%Y-%m-%d")
         file_name = f"{today}_Journals"
-
-        json_to_write = {
-            "date": today,
-            "content": content
-        }
-
-        with open(f"journals/{file_name}.json", "w") as file:
-            json.dump(json_to_write, file)
+        payload = {"date": today, "content": content}
+        self._write_json(self._entry_path("journals", file_name), payload)
 
     @tool
     def list_writing_entries(self, query: str = "", type_entry: str = "notes") -> dict:
-        """Return a list of writing entries based on the query and type. If the user asks about todos, for example, the type_entry should be 'todos'."""
+        """Return a list of writing entries based on the query and type."""
         if type_entry not in ["notes", "todos", "journals"]:
             return {}
 
-        files = os.listdir(f"{type_entry}/")
+        folder = self.base_dir / type_entry
         results = {}
+        for file in sorted(folder.glob("*.json")):
+            if query.lower() in file.name.lower() or not query:
+                with file.open("r", encoding="utf-8") as handle:
+                    data = json.load(handle)
 
-        for file in files:
-            if query.lower() in file.lower() or not query:
-                with open(f"{type_entry}/{file}") as f:
-                    data = json.load(f)
-                
                 if type_entry == "todos":
-                    preview = [t["task"] for t in data.get("todos", [])]
+                    preview = [todo.get("task", "") for todo in data.get("todos", [])]
                 else:
                     preview = data.get("content", "")[:75]
-                
-                results[file.replace(".json", "")] = preview
+
+                results[file.stem] = preview
 
         return results
-    
+
+    @tool
+    def search_entries(self, query: str = "", type_entry: str = "notes") -> dict:
+        """Search writing entries by title or content using a simple substring match."""
+        return self.list_writing_entries(self, query=query, type_entry=type_entry)
+
     @tool
     def read_entry(self, file_title: str) -> dict:
         """Read a writing entry by its title."""
         for type_entry in ["notes", "todos", "journals"]:
-            path = f"{type_entry}/{file_title}.json"
-            if os.path.exists(path):
-                with open(path) as f:
-                    return json.load(f)
-        
+            path = self._entry_path(type_entry, file_title)
+            if path.exists():
+                with path.open("r", encoding="utf-8") as handle:
+                    return json.load(handle)
+
         return {}
-    
+
     @tool
     def complete_todo(self, file_title: str, task: str) -> str:
         """Mark a todo as complete."""
-        path = f"todos/{file_title}.json"
-        if not os.path.exists(path):
+        path = self._entry_path("todos", file_title)
+        if not path.exists():
             return f"Todo '{file_title}' not found"
-        
-        with open(path) as file:
-            data = json.load(file)
-        
-        todo_match = next((t for t in data["todos"] if t["task"].lower() == task.lower()), None)
+
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+
+        todo_match = next((todo for todo in data.get("todos", []) if todo.get("task", "").lower() == task.lower()), None)
         if not todo_match:
             return f"Task '{task}' not found in '{file_title}'"
-        
-        todo_match['completed'] = True
-        
-        with open(path, 'w') as file:
-            json.dump(data, file)
-        
+
+        todo_match["completed"] = True
+        self._write_json(path, data)
         return f"Task '{task}' marked as complete"
-    
+
     @tool
     def get_incomplete_todos(self) -> dict:
         """Return a list of all incomplete todos."""
         results = {}
-        for file in os.listdir("todos/"):
-            with open(f"todos/{file}") as f:
-                data = json.load(f)
+        for file in sorted((self.base_dir / "todos").glob("*.json")):
+            with file.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
 
-            incomplete = [task for task in data['todos'] if not task['completed']]
+            incomplete = [todo for todo in data.get("todos", []) if not todo.get("completed", False)]
             if incomplete:
-                results[file.replace(".json", "")] = incomplete
-            
+                results[file.stem] = incomplete
+
         return results
+
+    @tool
+    def get_todo_summary(self) -> dict:
+        """Return a simple summary of todo progress across files."""
+        totals = {"files": 0, "tasks": 0, "completed": 0, "incomplete": 0, "by_tag": {}}
+        for file in sorted((self.base_dir / "todos").glob("*.json")):
+            with file.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            totals["files"] += 1
+            for todo in data.get("todos", []):
+                totals["tasks"] += 1
+                if todo.get("completed", False):
+                    totals["completed"] += 1
+                else:
+                    totals["incomplete"] += 1
+                tag = todo.get("tag", "") or "untagged"
+                totals["by_tag"][tag] = totals["by_tag"].get(tag, 0) + 1
+        return totals
 
     @tool
     def add_task(self, file_title: str, task: str, tag: str = "") -> str:
         """Add a new task to a todo entry."""
-        path = f"todos/{file_title}.json"
-        if not os.path.exists(path):
+        path = self._entry_path("todos", file_title)
+        if not path.exists():
             return f"Todo '{file_title}' not found"
-        
-        with open(path) as f:
-            data = json.load(f)
-        
-        data['todos'].append({
-            "task": task,
-            "completed": False,
-            "tag": tag
-        })
 
-        with open(path, "w") as f:
-            json.dump(data, f)
-        
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+
+        data["todos"].append({"task": task, "completed": False, "tag": tag})
+        self._write_json(path, data)
         return f"Task '{task}' added to '{file_title}'"
 
     @tool
     def update_entry(self, file_title: str, content: str, mode: str = "w") -> str:
         """Update a writing entry by its title."""
         for type_entry in ["notes", "journals"]:
-            path = f"{type_entry}/{file_title}.json"
+            path = self._entry_path(type_entry, file_title)
+            if not path.exists():
+                continue
 
-            if os.path.exists(path):
-                with open(path) as f:
-                    data = json.load(f)
-            
+            with path.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
+
             if mode == "a":
-                data["content"] += f"\n{content}"
+                data["content"] = f"{data.get('content', '')}\n{content}".strip()
             else:
-                data['content'] = content
-            
-            with open(path, "w") as f:
-                json.dump(data, f)
-            
+                data["content"] = content
+
+            self._write_json(path, data)
             return f"Entry '{file_title}' updated"
-        
+
         return f"Entry '{file_title}' not found"
 
     @tool
@@ -178,27 +178,40 @@ class Writer():
         return date.today().strftime("%Y-%m-%d")
 
     def list_writing_tools(self) -> list:
-        return [self.create_notes_entry, self.create_journal_entry, self.create_todo_entry, self.list_writing_entries, self.read_entry, self.complete_todo, self.add_task, self.update_entry, self.get_today]
+        return [
+            self.create_notes_entry,
+            self.create_journal_entry,
+            self.create_todo_entry,
+            self.list_writing_entries,
+            self.search_entries,
+            self.read_entry,
+            self.complete_todo,
+            self.get_incomplete_todos,
+            self.get_todo_summary,
+            self.add_task,
+            self.update_entry,
+            self.get_today,
+        ]
+
 
 @tool
 def use_writing_tools(message: str) -> str:
-
     writer = Writer()
 
     model = OllamaModel(
         model_id="granite4.1:8b",
-        host="http://localhost:11434"
+        host="http://localhost:11434",
     )
 
     agent = Agent(
         model=model,
         system_prompt="You are a helpful assistant specializing in reading, writing, and summarizing notes, journals, and todo lists. Note that the titles of the files are just the days they were written.",
-        tools=writer.list_writing_tools()
+        tools=writer.list_writing_tools(),
     )
-    
+
     response = agent(message)
 
     try:
-        return response.message["content"][0]['text'] #type: ignore
+        return response.message["content"][0]["text"]  # type: ignore
     except Exception as e:
-        return f"An error occurred when doing your request- try again: {e}"
+        return f"An error occurred when doing your request - try again: {e}"

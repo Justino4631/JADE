@@ -1,3 +1,5 @@
 .env
 data/
 output/
+credentials.json
+token.json

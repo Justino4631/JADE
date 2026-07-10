@@ -1,116 +1,182 @@
-from strands import tool, Agent
-from strands.models.ollama import OllamaModel
+import os
 import datetime
-import time
-import re
+from zoneinfo import ZoneInfo
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from strands import Agent, tool
+from strands.models.ollama import OllamaModel
 
-CALENDAR_FILE = "calendar/calendar.txt"
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-class Calendar():
-    def __init__(self) -> None:
-        try:
-            self._load()
-        except FileNotFoundError:
-            open(CALENDAR_FILE, "w").close()
-            self.calendar = ""
+class GoogleCalendarTools():
+    def __init__(self):
+        creds = None
 
-    def _load(self) -> None:
-        with open(CALENDAR_FILE, "r") as f:
-            self.calendar = f.read()
-
-    def _save(self, lines: list[str]) -> None:
-        with open(CALENDAR_FILE, "w") as f:
-            f.write("\n".join(line for line in lines if line.strip()))
-        self._load()
-
-    @tool
-    def add_to_calendar(self, month: int, day: int, event_time: str, activity: str) -> str:
-        """Add an activity to the calendar on the given month/day at the given time."""
-        lines = self.calendar.splitlines()
-        key = f"{month}/{day}"
-        updated = False
-
-        for i, entry in enumerate(lines):
-            if entry.startswith(f"{key}:"):
-                lines[i] += f", {activity} at {event_time}"
-                updated = True
-                break
-
-        if not updated:
-            lines.append(f"{key}: {activity} at {event_time}")
-
-        self._save(lines)
-        return f"Added '{activity} at {event_time}' on {key}."
-
-    @tool
-    def remove_from_calendar(self, month: int, day: int, activity: str) -> str:
-        """Remove a specific activity from the calendar on the given month/day."""
-        lines = self.calendar.splitlines()
-        key = f"{month}/{day}"
-        found = False
-
-        for i, entry in enumerate(lines):
-            if entry.startswith(f"{key}:") and activity in entry:
-                found = True
-                cleaned = re.sub(rf",?\s*{re.escape(activity)} at [^,\n]+", "", entry)
-                cleaned = re.sub(r":\s*,", ":", cleaned).strip().rstrip(",").strip()
-                lines[i] = cleaned
-                break
-
-        if not found:
-            return f"No entry for '{activity}' found on {key}."
-
-        self._save(lines)
-        return f"Removed '{activity}' from {key}."
-
-    @tool
-    def read_calendar(self) -> str:
-        """Return the full contents of the calendar."""
-        self._load()
-        return self.calendar if self.calendar.strip() else "The calendar is empty."
-
-    @tool
-    def get_today(self) -> str:
-        """Return today's date."""
-        return datetime.date.today().strftime("%B %d, %Y")
-
-    @tool
-    def get_current_time(self) -> str:
-        """Return the current time."""
-        return time.strftime("%I:%M %p")
-
-    @tool
-    def clear_calendar(self) -> None:
-        """Clear all current entries in the calendar."""
-        self._save([])
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+                creds = flow.run_local_server(port=0)
+            
+            with open("token.json", "w") as token:
+                token.write(creds.to_json())
+        self.service = build("calendar", "v3", credentials=creds)
     
-    def list_calendar_tools(self) -> list:
-        return [
-            self.add_to_calendar,
-            self.remove_from_calendar,
-            self.read_calendar,
-            self.get_today,
-            self.get_current_time,
-            self.clear_calendar
-        ]
+    def _get_now_iso(self):
+        """Get the current time in LA"""
+        return datetime.datetime.now(ZoneInfo("America/Los_Angeles")).isoformat()
+    
+    @tool
+    def read_upcoming_events(self, max_results=5) -> list | None:
+        """Read X number of upcoming events from the calendar"""
+        upcoming_events = []
+        now = self._get_now_iso()
 
-@tool
-def use_calendar(message:str) -> str:
-    """Use the calendar tools to manage your calendar effectively."""
-    calendar = Calendar()
+        try:
+            events_result = self.service.events().list(
+                calendarId='primary',
+                timeMin=now,
+                maxResults=max_results,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+
+            events = events_result.get("items", [])
+
+            if not events:
+                print("No upcoming events found.")
+                return
+
+            for event in events:
+                start = event['start'].get("dateTime", event['start'].get("date"))
+                data = {
+                    "ID": event['id'],
+                    "Start": start,
+                    "Event": event.get('summary')
+                }
+                upcoming_events.append(data)
+            return upcoming_events
+        
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return
+    
+    @tool
+    def add_event(self, summary: str, description: str, start_time: str, end_time: str) -> str:
+        """Add an event to the calendar based on a summary, description, start time and end time"""
+        is_all_day = len(start_time) <= 10
+
+        if is_all_day:
+            event = {
+                "summary": summary,
+                "description": description,
+                "start": {
+                    "date": start_time 
+                },
+                "end": {
+                    "date": end_time 
+                }
+            }
+        else:
+            clean_start = start_time.rstrip('Z')
+            clean_end = end_time.rstrip('Z')
+            
+            event = {
+                "summary": summary,
+                "description": description,
+                "start": {
+                    'dateTime': clean_start,
+                    'timeZone': 'America/Los_Angeles'
+                },
+                'end': {
+                    'dateTime': clean_end,
+                    'timeZone': 'America/Los_Angeles'
+                }
+            }
+
+        try:
+            created_event = self.service.events().insert(calendarId='primary', body=event).execute()
+            return f"Success! Event created at link {created_event.get('htmlLink')} with ID {created_event.get('id')}"
+        except Exception as e:
+            return f"An error occurred while trying to add a calendar event: {e}"
+    
+    @tool
+    def delete_event(self, event_id: str) -> str:
+        """Delete an event from the calendar based on its ID"""
+        try:
+            self.service.events().delete(calendarId='primary', eventId=event_id).execute()
+            return f"Success! Event with ID {event_id} has been deleted!"
+        except Exception as e:
+            return f"An error occurred while trying to delete an event: {e}"
+
+    @tool
+    def get_now(self) -> str:
+        """Get the current time in LA"""
+        return datetime.datetime.now(ZoneInfo("America/Los_Angeles")).isoformat()
+
+    @tool
+    def get_events_and_ids(self) -> dict:
+        """Return a dictionary of each event's summary and their ID and start time"""
+        data = {}
+        events = []
+        now = self._get_now_iso()
+
+        try:
+            events_result = self.service.events().list(
+                calendarId='primary',
+                timeMin=now,
+                maxResults=100,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+
+            events = events_result.get('items', [])
+
+            if not events:
+                print("No upcoming events found")
+                return {}
+
+            for event in events:
+                data[f"{event.get('summary')}"] = (event['id'], event['start'].get('dateTime', event['start'].get('date')))
+            return data
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return {}
+
+    def list_tools(self) -> list:
+        return [self.read_upcoming_events, self.delete_event, self.add_event, self.get_now, self.get_events_and_ids]
+
+def use_calendar_tools(message: str = "") -> str:
+    calendar = GoogleCalendarTools()
 
     model = OllamaModel(
-        model_id="granite4.1:8b",
-        host="http://localhost:11434"
+        model_id='granite4.1:8b',
+        host='http://localhost:11434'
     )
 
     agent = Agent(
         model=model,
-        tools=calendar.list_calendar_tools(),
-        system_prompt="You are a helpful assistant that manages a calendar. You can add events, remove events, read the calendar, and provide today's date and current time. Before running any tasks, ALWAYS CHECK the current day and time to ensure your actions are relevant. Use the tools provided to manage the calendar effectively."
+        system_prompt=(
+            "You are a manager of Google calendar operating in Pacific Time (America/Los_Angeles). "
+            "When trying to create an event, remember to use the get_now tool to get the current date and time. "
+            "For ALL-DAY events, provide start_time and end_time strings in 'YYYY-MM-DD' format (where end_time is the next day). "
+            "For TIMED events, provide strings in 'YYYY-MM-DDTHH:MM:SS' format without appending a 'Z'."
+            "When trying to delete an event, use the get_events_and_ids tool to get the event names and times and correspond them with which id to input to the delete tool"
+            "When trying to EDIT an event, first figure out which event it is, get the ID, delete it, and reschedule it. Keep the same name and description of the event, however."
+            "The current year is 2026"
+        ),
+        tools=calendar.list_tools()
     )
+
     response = agent(message)
     try:
-        return response.message["content"][0]["text"] #type: ignore
-    except (KeyError, IndexError):
-        return "I'm sorry, I couldn't retrieve the information."
+        return response.message['content'][0]['text'] #type: ignore
+    except Exception as e:
+        return f"An error occurred: {e}"
