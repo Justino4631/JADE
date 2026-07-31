@@ -1,142 +1,107 @@
-import requests
-from strands.models.ollama import OllamaModel
-from strands import Agent, tool
-from bs4 import BeautifulSoup
-import wikipedia
-import time
 import os
+import time
+import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from newsapi import NewsApiClient
+import wikipedia
 import yfinance as yf
+from duckduckgo_search import DDGS
+from strands.models.ollama import OllamaModel
+from strands import Agent, tool
 
 load_dotenv()
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 API = NewsApiClient(NEWS_API_KEY) if NEWS_API_KEY else None
 
-wikipedia.set_user_agent("JADE/1.0")
+wikipedia.set_user_agent("JADE/1.0 (justin_m_baratta@gmail.com)")
 
+def _ddg_search(query: str) -> str:
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=3))
+        if not results:
+            return f"No results found for: '{query}'"
+        return "\n".join(f"Title: {r['title']}\nSnippet: {r['body']}\n" for r in results)
+    except Exception as e:
+        return f"Search error: {e}"
+
+def _wiki_lookup(topic: str) -> str:
+    try:
+        summary = wikipedia.summary(topic, auto_suggest=True)
+        return f"Wikipedia Summary for '{topic}': {summary}"
+    except wikipedia.exceptions.DisambiguationError as e:
+        return f"Topic ambiguous. Try one of these: {e.options[:3]}"
+    except Exception as e:
+        return f"Wikipedia error: {e}"
+
+def _fetch_stock(ticker: str) -> dict:
+    try:
+        info = yf.Ticker(ticker).info
+        return {
+            "symbol": ticker.upper(),
+            "price": info.get("currentPrice"),
+            "high": info.get("dayHigh"),
+            "low": info.get("dayLow"),
+            "company": info.get("longName"),
+        }
+    except Exception as e:
+        return {"error": f"Failed to fetch {ticker}: {e}"}
 
 class WebTools:
     def __init__(self) -> None:
-        return
+        pass
 
     @tool
-    def definition(self, word: str) -> str:
-        """Get the definition of something from Merriam-Webster."""
-        response = requests.get(f"https://www.merriam-webster.com/dictionary/{word}", timeout=10)
-        if not response.ok:
-            raise Exception(f"Merriam-Webster API request failed: {response.status_code}")
-
-        soup = BeautifulSoup(response.content, "html.parser")
-        definition = soup.find("span", class_="dtText")
-
-        if not definition:
-            raise Exception(f"Definition for '{word}' not found.")
-
-        definition_text = definition.get_text().strip(": ").strip()
-        return f"The definition of '{word}' is: {definition_text}"
-
-    @tool
-    def get_wikipedia_possible_searches(self, topic: str) -> str:
-        """Get the possible Wikipedia article titles for a specific topic."""
-        try:
-            results = wikipedia.search(topic)
-            return f"Possible articles for {topic}: {results}"
-        except Exception as e:
-            return f"An error occurred when searching for topic on Wikipedia: {e}"
-
-    @tool
-    def get_wikipedia_summary(self, article_title: str) -> str:
-        """Get a summary of a topic on Wikipedia based on an article."""
-        try:
-            summary = wikipedia.summary(article_title, auto_suggest=False)
-            return f"Summary of {article_title}: {summary}"
-        except Exception as e:
-            return f"An error occurred when getting the summary for a topic on Wikipedia: {e}"
-
-    @tool
-    def random_wikipedia_article_summary(self) -> str:
-        """You learn something new every day!"""
-        try:
-            article_title = wikipedia.random()
-        except requests.exceptions.JSONDecodeError:
-            print("Error fetching from Wikipedia, waiting 20 seconds")
-            time.sleep(20)
-            article_title = wikipedia.random()
-
-        try:
-            summary = wikipedia.summary(article_title, auto_suggest=False)
-            return f"You learn something new every day!\n{article_title}: {summary}"
-        except wikipedia.exceptions.DisambiguationError:
-            article_title = wikipedia.search(article_title)[0]
-            summary = wikipedia.summary(article_title, auto_suggest=False)
-            return f"You learn something new every day!\n{article_title}: {summary}"
-        except Exception as e:
-            print(f"An error occurred when getting summary from Wikipedia: {e}")
-            return ""
-
-    @tool
-    def get_web_summary(self, topic: str) -> str:
-        """Return a simple search + summary snapshot for a topic."""
-        possible_articles = self.get_wikipedia_possible_searches(self, topic)
-        summary = self.get_wikipedia_summary(self, topic)
-        return f"{possible_articles}\n\n{summary}"
-
-    @tool
-    def get_news_headlines(self) -> list:
-        """Get the top 10 news headlines from the News API."""
-        if API is None:
-            return [{"title": "News API key not configured", "description": "Add NEWS_API_KEY to enable live headlines."}]
-
-        top_headlines = API.get_top_headlines()
-        return top_headlines.get("articles", [])[:10]
+    def search_and_lookup(self, query: str) -> str:
+        """Search the live web or Wikipedia for general knowledge, current events, and facts."""
+        wiki_res = _wiki_lookup(query)
+        if "error" in wiki_res.lower() or "ambiguous" in wiki_res.lower():
+            return _ddg_search(query)
+        return wiki_res
 
     @tool
     def get_stock_prices(self, tickers: list) -> dict:
-        """Get the stock price ticker of stock(s)."""
+        """Get the current stock price details for a list of ticker symbols (e.g. ['AAPL', 'TSLA'])."""
         prices = {}
         for ticker in tickers:
-            time.sleep(1)
-            stock = yf.Ticker(ticker)
-            info = stock.info
-
-            prices[ticker] = {
-                "symbol": ticker.upper(),
-                "price": info.get("currentPrice"),
-                "open": info.get("open"),
-                "high": info.get("dayHigh"),
-                "low": info.get("dayLow"),
-                "volume": info.get("volume"),
-                "market_cap": info.get("marketCap"),
-                "company": info.get("longName"),
-            }
+            time.sleep(0.5)  # Quick rate-limit cushion
+            prices[ticker] = _fetch_stock(ticker)
         return prices
+
+    @tool
+    def get_news_headlines(self) -> list:
+        """Get the top news headlines."""
+        if not API:
+            return [{"title": "News API key missing", "description": "Configure NEWS_API_KEY."}]
+        try:
+            return API.get_top_headlines().get("articles", [])[:5]
+        except Exception as e:
+            return [{"title": "News API Error", "description": str(e)}]
 
     def list_web_tools(self) -> list:
         return [
-            self.definition,
-            self.get_wikipedia_possible_searches,
-            self.get_wikipedia_summary,
-            self.random_wikipedia_article_summary,
-            self.get_web_summary,
-            self.get_news_headlines,
+            self.search_and_lookup,
             self.get_stock_prices,
+            self.get_news_headlines,
         ]
-
 
 @tool
 def use_web_tools(message: str) -> str:
     web_tools = WebTools()
 
     model = OllamaModel(
-        model_id="granite4.1:8b",
+        model_id="qwen2.5:1.5b",
         host="http://localhost:11434",
     )
 
     agent = Agent(
         model=model,
         tools=web_tools.list_web_tools(),
-        system_prompt="You are a helpful assistant that provides information from the web. Use the available tools to fetch definitions, Wikipedia summaries, news headlines, or stock prices based on the user's request.",
+        system_prompt=(
+            "You are an internet-enabled assistant. Use search_and_lookup for general facts, "
+            "get_stock_prices for market tickers, and get_news_headlines for news events."
+        ),
     )
 
     response = agent(message)

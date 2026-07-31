@@ -132,7 +132,7 @@ def use_weather_tools(message: str) -> str:
     weather = Weather()
 
     model = OllamaModel(
-        model_id="granite4.1:8b",
+        model_id='qwen2.5:1.5b',
         host="http://localhost:11434",
     )
 

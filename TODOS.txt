@@ -1,3 +1,2 @@
-3. Connect + test microphone to see if speech to text and wake word run on rpi from mic
-4. Fix speaker or solder new speaker and test audio
-5. Connect agent response to speaker and test full pipeline
+Test ALL + Refine, Devlog + git commit, use in practice! 
+Film video of successful test + create demo link + ship!!
