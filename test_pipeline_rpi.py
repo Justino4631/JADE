@@ -18,7 +18,8 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 16_000
 GAIN = 1.0
-MIC_DEVICE_INDEX = 1
+MIC_DEVICE_INDEX = 3
+
 
 VOICE = 'en-US-AvaNeural'
 
@@ -97,18 +98,23 @@ async def speak(text: str = "") -> tuple:
 
         async for chunk in communicate.stream():
             if chunk['type'] == "audio":
-                audio_data += chunk['data'] #type: ignore
-        
+                audio_data += chunk['data']
+
         audio_segment = AudioSegment.from_file(io.BytesIO(audio_data), format='mp3')
-        audio_segment = audio_segment.set_frame_rate(24_000).set_channels(1)
+        
+        # 1. Ensure 2-channel stereo output for MAX98357 hardware
+        audio_segment = audio_segment.set_frame_rate(24_000).set_channels(2)
         raw_pcm_data = audio_segment.raw_data
 
         p = pyaudio.PyAudio()
+        
+        # 2. Pass MIC_DEVICE_INDEX (which points to 'default') for output as well
         stream = p.open(
             format=p.get_format_from_width(audio_segment.sample_width),
             channels=audio_segment.channels,
             rate=audio_segment.frame_rate,
-            output=True
+            output=True,
+            output_device_index=MIC_DEVICE_INDEX
         )
 
         stream.write(raw_pcm_data)
@@ -117,7 +123,7 @@ async def speak(text: str = "") -> tuple:
         p.terminate()
 
         return "Spoke successfully!", True
-    
+
     except Exception as e:
         return f"An error occurred when trying to speak: {e}", False
 

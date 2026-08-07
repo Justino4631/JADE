@@ -237,10 +237,10 @@ def add_event(summary: str, start_time: str, end_time: str) -> str:
     Args:
         summary: Short concise title of the event (e.g., 'Basketball Practice').
         start_time: Full ISO date-time format 'YYYY-MM-DDTHH:MM:SS' in 24-hour time 
-                    (e.g., '2026-07-25T16:30:00-06:00' for 4:30 PM). 
+                    (e.g., '2026-07-25T16:30:00-07:00' for 4:30 PM). 
                     For all-day events, use 'YYYY-MM-DD'.
         end_time: Full ISO date-time format 'YYYY-MM-DDTHH:MM:SS' in 24-hour time 
-                  (e.g., '2026-07-25T17:30:00-06:00' for 5:30 PM). 
+                  (e.g., '2026-07-25T17:30:00-07:00' for 5:30 PM). 
                   For all-day events, use 'YYYY-MM-DD'.
     """
     print(start_time, end_time)
