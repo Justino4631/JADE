@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Utilities to add events to Google Calendar and helper time parsing.
+"""
+
 import datetime
 import os
 from zoneinfo import ZoneInfo
@@ -29,13 +36,17 @@ def init_google_calendar():
 SERVICE = init_google_calendar()
 
 def parse_to_la_naive(iso_str: str) -> str:
-    """Parses any valid ISO string and converts it to a naive LA local time string."""
+    """Parse an ISO datetime string and return a naive LA-local time string.
+
+    This accepts strings with 'Z' or explicit offsets and normalizes them
+    into a timezone-naive string in America/Los_Angeles for calendar APIs.
+    """
     tz = ZoneInfo("America/Los_Angeles")
     
-    # Python 3.11+ handles 'Z' and offset strings like '-07:00' natively
+    # Normalize a trailing 'Z' to a +00:00 offset so fromisoformat works.
     dt = datetime.datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
     
-    # If a timezone offset was provided, convert to LA time and remove timezone info
+    # If the parsed datetime has tzinfo, convert into LA and drop tzinfo
     if dt.tzinfo is not None:
         dt = dt.astimezone(tz).replace(tzinfo=None)
         
@@ -54,6 +65,7 @@ def add_event(summary: str, start_time: str, end_time: str) -> str:
             "end": {"date": end_time}
         }
     else:
+        # Convert incoming ISO strings into naive LA-local datetimes
         formatted_start = parse_to_la_naive(start_time)
         formatted_end = parse_to_la_naive(end_time)
 

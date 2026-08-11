@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Google Calendar helper tools wrapped as callable `strands` tools.
+"""
+
 import os
 import datetime
 from zoneinfo import ZoneInfo
@@ -27,10 +34,12 @@ class GoogleCalendarTools:
             
             with open("token.json", "w") as token:
                 token.write(creds.to_json())
+        # Build the Google Calendar service client for subsequent calls
         self.service = build("calendar", "v3", credentials=creds)
     
     def _get_now_iso(self):
         """Get current time in ISO format for LA timezone."""
+        # Use timezone-aware now then convert to ISO format for API queries
         return datetime.datetime.now(ZoneInfo("America/Los_Angeles")).isoformat()
     
     @tool
@@ -41,6 +50,7 @@ class GoogleCalendarTools:
         Args:
             max_results: Maximum number of events to return.
         """
+        # Collect simplified event dicts for the requested time window
         upcoming_events = []
         now = self._get_now_iso()
 
@@ -53,12 +63,14 @@ class GoogleCalendarTools:
                 orderBy='startTime'
             ).execute()
 
+            # Extract events list or an empty list if none
             events = events_result.get("items", [])
 
             if not events:
                 print("No upcoming events found.")
                 return None
 
+            # Normalize and gather id/start/summary for each returned event
             for event in events:
                 start = event['start'].get("dateTime", event['start'].get("date"))
                 data = {
@@ -85,6 +97,7 @@ class GoogleCalendarTools:
             end_time: ISO format 'YYYY-MM-DDTHH:MM:SS' (e.g., '2026-07-21T17:30:00').
                       If no end time is specified, default to 1 hour after start_time.
         """
+        # Decide whether the event is an all-day event by length of start string
         is_all_day = len(start_time) <= 10
 
         if is_all_day:
@@ -95,6 +108,7 @@ class GoogleCalendarTools:
                 "end": {"date": end_time}
             }
         else:
+            # Clean trailing 'Z' (UTC designator) for API compatibility
             clean_start = start_time.rstrip('Z')
             clean_end = end_time.rstrip('Z')
             
@@ -129,6 +143,7 @@ class GoogleCalendarTools:
             self.service.events().delete(calendarId='primary', eventId=event_id).execute()
             return f"Success! Event ID {event_id} deleted."
         except Exception as e:
+            # Return the error string rather than raising to keep tool-friendly output
             return f"Error deleting event: {e}"
 
     @tool
@@ -145,6 +160,7 @@ class GoogleCalendarTools:
         Returns a mapping of upcoming event names to their IDs and start times.
         Use this to find an event ID before deleting or editing an entry.
         """
+        # Return a simple mapping of event summary -> (id, start)
         data = {}
         now = self._get_now_iso()
 

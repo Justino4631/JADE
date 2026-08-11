@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Weather-related tools: fetch current conditions and forecasts via Open-Meteo.
+"""
+
 import requests
 from strands import tool, Agent
 from strands.models.ollama import OllamaModel
@@ -35,7 +42,11 @@ class Weather:
         return
 
     def get_geocode(self, city: str = "Reno") -> tuple[float, float]:
-        """Return the latitude and longitude of a given city."""
+        """Return the latitude and longitude of a given city.
+
+        Uses the Open-Meteo geocoding API and raises on failure.
+        """
+        # Request a single geocoding match for the city name
         params = {"name": city, "count": 1}
         response = requests.get(GEOCODING_URL, params=params, timeout=10)
 
@@ -51,7 +62,12 @@ class Weather:
 
     @tool
     def get_current_weather(self, city: str = "Reno") -> dict:
-        """Get the current weather in a city."""
+        """Get the current weather in a city.
+
+        Returns a dict with temperature, wind, precipitation and human-readable
+        weather condition using `WMO_CODES` mapping.
+        """
+        # Resolve city to lat/lon before fetching current weather
         latitude, longitude = self.get_geocode(city=city)
         params = {
             "latitude": latitude,
@@ -62,16 +78,23 @@ class Weather:
 
         response = requests.get(URL, params=params, timeout=10)
         if not response.ok:
+            # Surface HTTP issues rather than returning partial data
             raise Exception(f"Failed to fetch weather data: {response.status_code}")
 
         weather_current = response.json()["current"]
+        # Convert numeric weather code to a human-friendly description
         weather_current["weather_code"] = WMO_CODES[int(weather_current["weather_code"])]
         weather_current["city"] = city
         return weather_current
 
     @tool
     def get_forecast(self, city: str = "Reno", days: int = 7):
-        """Get the forecast for a certain number of days in a city."""
+        """Get the forecast for a certain number of days in a city.
+
+        Returns the daily forecast structure returned by Open-Meteo with
+        weather codes translated to readable strings.
+        """
+        # Resolve location, then request daily forecast fields
         latitude, longitude = self.get_geocode(city=city)
         params = {
             "latitude": latitude,
@@ -87,6 +110,7 @@ class Weather:
 
         results = response.json()["daily"]
         results["city"] = city
+        # Map weather codes for each day into human-readable strings
         results["weather_code"] = [WMO_CODES[int(code)] for code in results.get("weather_code", [])]
         return results
 
@@ -110,6 +134,7 @@ class Weather:
     @tool
     def get_forecast_summary(self, city: str = "Reno", days: int = 3) -> str:
         """Return a human-readable forecast summary for the next few days."""
+        # get_forecast returns a dict of arrays; build readable lines for each day
         forecast = self.get_forecast(self, city=city, days=days)
         lines = [f"Forecast for {city}:"]
         for day, high, low, precipitation, condition in zip(

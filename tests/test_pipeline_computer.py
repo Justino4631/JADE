@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Local computer pipeline tests for audio capture and STT components.
+"""
+
 import pyaudio
 import numpy as np
 from openwakeword.model import Model

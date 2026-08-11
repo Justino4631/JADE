@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Audio pipeline runner without wakeword detection, used for testing STT and TTS.
+"""
+
 import pyaudio
 import numpy as np
 from openwakeword.model import Model

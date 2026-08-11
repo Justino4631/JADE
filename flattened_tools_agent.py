@@ -1,3 +1,11 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Flattened agent tools: exposes calendar, weather, search, and web
+utility functions and tool wrappers used by the JADE assistant.
+"""
+
 # ------- Import Section -------
 import os
 import datetime
@@ -56,6 +64,12 @@ wikipedia.set_user_agent("JADE/1.0 (justin_m_baratta@gmail.com)")
 BASE_DIR = Path.cwd()
 
 def init_google_calendar():
+    """Initialize Google Calendar API client using local credentials/token files.
+
+    Returns a service object from `googleapiclient.discovery.build`.
+    """
+
+    # Attempt to load saved credentials from `token.json` first.
     creds = None
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
@@ -76,9 +90,11 @@ SERVICE = init_google_calendar()
 
 # ------- Helper Functions Section -------
 def get_now_iso() -> str:
-     return datetime.datetime.now(ZoneInfo("America/Los_Angeles")).isoformat()
+    # Current time in LA timezone as ISO string (useful for Google Calendar queries)
+    return datetime.datetime.now(ZoneInfo("America/Los_Angeles")).isoformat()
 
 def get_geocode(city: str = "Reno") -> tuple:
+    # Query the open-meteo geocoding endpoint for a single match
     params = {'name': city, 'count': 1}
     response = requests.get(GEOCODING_URL, params=params, timeout=10)
 
@@ -94,6 +110,7 @@ def get_geocode(city: str = "Reno") -> tuple:
 
 def ddg_search(query: str = "") -> str:
     try:
+        # Use DuckDuckGo search wrapper to fetch short text results
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=3))
         if not results:
@@ -104,6 +121,7 @@ def ddg_search(query: str = "") -> str:
 
 def wiki_lookup(topic: str = "") -> str:
     try:
+        # Attempt to fetch a concise Wikipedia summary for the topic
         summary = wikipedia.summary(topic, auto_suggest=True)
         return f"Wikipedia Summary for '{topic}': {summary}"
     except wikipedia.exceptions.DisambiguationError as e:
@@ -113,6 +131,7 @@ def wiki_lookup(topic: str = "") -> str:
 
 def fetch_stock(ticker: str = "") -> dict:
     try:
+        # Query yfinance for the ticker metadata and current price
         info = yf.Ticker(ticker).info
         return {
             "symbol": ticker.upper(),
@@ -125,9 +144,11 @@ def fetch_stock(ticker: str = "") -> dict:
         return {"error": f"Failed to fetch {ticker}: {e}"}
 
 def entry_path(type_entry: str = "", file_title: str = "") -> Path:
+    # Construct a filesystem path for a named JSON entry (notes, todos, etc.)
     return BASE_DIR / type_entry / f"{file_title}.json"
 
 def write_json(path: Path, payload: dict = {}) -> None:
+    # Ensure the target directory exists, then write JSON with indentation
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as file:
         json.dump(payload, file, indent=2)
@@ -144,10 +165,12 @@ def read_upcoming_events(max_results: int = 5) -> str:
         max_results: int, maximum number of events to return
     """
 
+    # Collect a small list of upcoming events for display
     upcoming_events = []
     now = get_now_iso()
 
     try:
+        # Call Google Calendar API for upcoming events
         events_result = SERVICE.events().list(
             calendarId='primary',
             timeMin=now,
@@ -160,6 +183,7 @@ def read_upcoming_events(max_results: int = 5) -> str:
         if not events:
             return f"No upcoming events found."
 
+        # Normalize event start field and collect id/summary for each entry
         for event in events:
             start = event['start'].get("dateTime", event['start'].get("date"))
             data = {
@@ -237,13 +261,12 @@ def add_event(summary: str, start_time: str, end_time: str) -> str:
     Args:
         summary: Short concise title of the event (e.g., 'Basketball Practice').
         start_time: Full ISO date-time format 'YYYY-MM-DDTHH:MM:SS' in 24-hour time 
-                    (e.g., '2026-07-25T16:30:00-07:00' for 4:30 PM). 
+                    (e.g., '2026-08-11T16:30:00-07:00' for 4:30 PM). 
                     For all-day events, use 'YYYY-MM-DD'.
         end_time: Full ISO date-time format 'YYYY-MM-DDTHH:MM:SS' in 24-hour time 
-                  (e.g., '2026-07-25T17:30:00-07:00' for 5:30 PM). 
+                  (e.g., '2026-08-11T17:30:00-07:00' for 5:30 PM). 
                   For all-day events, use 'YYYY-MM-DD'.
     """
-    print(start_time, end_time)
     is_all_day = len(start_time) <= 10
 
     if is_all_day:

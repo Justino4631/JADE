@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Microphone sanity test for local hardware and SpeechRecognition integration.
+"""
+
 import os
 import sys
 import speech_recognition as sr

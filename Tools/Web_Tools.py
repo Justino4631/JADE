@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Web integration tools: search, news, and stock lookups using online APIs.
+"""
+
 import os
 import time
 import requests
@@ -18,6 +25,7 @@ wikipedia.set_user_agent("JADE/1.0 (justin_m_baratta@gmail.com)")
 
 def _ddg_search(query: str) -> str:
     try:
+        # Lightweight DuckDuckGo text search for quick snippets
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=3))
         if not results:
@@ -28,6 +36,7 @@ def _ddg_search(query: str) -> str:
 
 def _wiki_lookup(topic: str) -> str:
     try:
+        # Prefer a concise Wikipedia summary when available
         summary = wikipedia.summary(topic, auto_suggest=True)
         return f"Wikipedia Summary for '{topic}': {summary}"
     except wikipedia.exceptions.DisambiguationError as e:
@@ -37,6 +46,7 @@ def _wiki_lookup(topic: str) -> str:
 
 def _fetch_stock(ticker: str) -> dict:
     try:
+        # Query yfinance for a ticker's basic info
         info = yf.Ticker(ticker).info
         return {
             "symbol": ticker.upper(),
@@ -54,7 +64,10 @@ class WebTools:
 
     @tool
     def search_and_lookup(self, query: str) -> str:
-        """Search the live web or Wikipedia for general knowledge, current events, and facts."""
+        """Search the live web or Wikipedia for general knowledge and facts.
+
+        If Wikipedia returns an ambiguous result or an error, fall back to DuckDuckGo.
+        """
         wiki_res = _wiki_lookup(query)
         if "error" in wiki_res.lower() or "ambiguous" in wiki_res.lower():
             return _ddg_search(query)
@@ -62,7 +75,10 @@ class WebTools:
 
     @tool
     def get_stock_prices(self, tickers: list) -> dict:
-        """Get the current stock price details for a list of ticker symbols (e.g. ['AAPL', 'TSLA'])."""
+        """Return a map of ticker -> price info. Sleeps briefly between calls.
+
+        The brief sleep helps avoid hitting rate limits for public APIs.
+        """
         prices = {}
         for ticker in tickers:
             time.sleep(0.5)  # Quick rate-limit cushion
@@ -71,12 +87,16 @@ class WebTools:
 
     @tool
     def get_news_headlines(self) -> list:
-        """Get the top news headlines."""
+        """Fetch top news headlines using NewsAPI if configured.
+
+        Returns a short list of article dicts or a helpful message when unconfigured.
+        """
         if not API:
             return [{"title": "News API key missing", "description": "Configure NEWS_API_KEY."}]
         try:
             return API.get_top_headlines().get("articles", [])[:5]
         except Exception as e:
+            # Return a minimal failure payload so callers can still surface UI messages
             return [{"title": "News API Error", "description": str(e)}]
 
     def list_web_tools(self) -> list:

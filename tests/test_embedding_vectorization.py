@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Utilities to test embedding generation and vector similarity for tool selection.
+"""
+
 from Tools.ALL_TOOLS import TOOLS
 from sentence_transformers import SentenceTransformer, util
 

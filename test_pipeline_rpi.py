@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Integration test harness for Raspberry Pi audio pipeline and wakeword detection.
+"""
+
 import pyaudio
 import numpy as np
 from openwakeword.model import Model
@@ -13,12 +20,12 @@ from sentence_transformers import SentenceTransformer, util
 
 OWW_Model = Model(wakeword_model_paths=['jade.onnx'])
 
-CHUNK_SIZE = 1280 
+CHUNK_SIZE = 3840 
 FORMAT = pyaudio.paInt16
 CHANNELS = 2
-RATE = 16_000
+RATE = 48_000
 GAIN = 1.0
-MIC_DEVICE_INDEX = 3
+MIC_DEVICE_INDEX = None
 
 
 VOICE = 'en-US-AvaNeural'
@@ -62,7 +69,7 @@ TOOL_NAMES, TOOL_DESCRIPTIONS = list(TOOLS_MAP.keys()), list(TOOLS_MAP.values())
 TOOL_EMBEDDINGS = EMBEDDER.encode(TOOL_DESCRIPTIONS, convert_to_tensor=True)
 
 class VoiceHatMicrophone(sr.Microphone):
-    def __init__(self, device_index=None, sample_rate=16000, chunk_size=1024):
+    def __init__(self, device_index=None, sample_rate=48000, chunk_size=1024):
         super().__init__(device_index=device_index, sample_rate=sample_rate, chunk_size=chunk_size)
         self.CHANNELS = 2
 
@@ -71,13 +78,15 @@ def process_wakeword_frame(raw_stereo_bytes: bytes) -> bool:
     stereo_arr = np.frombuffer(raw_stereo_bytes, dtype=np.int16)
 
     mono_arr = (stereo_arr[0::2].astype(np.int32) + stereo_arr[1::2].astype(np.int32)) // 2
-    audio_arr = mono_arr.astype(np.int16)
+    mono_16k = mono_arr[::3].astype(np.int16)
 
     if GAIN != 1.0:
-        audio_arr = audio_arr.astype(np.float32) * GAIN #type: ignore
-        audio_arr = np.clip(audio_arr, -32768, 32767).astype(np.int16)
+        # Apply optional gain, clamp to int16 limits, and cast back
+        mono_16k = mono_16k.astype(np.float32) * GAIN #type: ignore
+        mono_16k = np.clip(mono_16k, -32768, 32767).astype(np.int16)
 
-    prediction = OWW_Model.predict(audio_arr)
+    # Run the model and extract the 'jade' wakeword score (default 0.0)
+    prediction = OWW_Model.predict(mono_16k)
     score = prediction.get("jade", 0.0) #type: ignore
     if score > 0.1:
         print(score)
@@ -88,11 +97,13 @@ def get_relevant_tools(user_query: str, top_k: int = 5):
 
     hits = util.semantic_search(query_emb, TOOL_EMBEDDINGS, top_k=top_k)[0]
 
+    # Pick the highest-scoring tool descriptions and map back to tool names
     selected_tools = [TOOL_NAMES[hit['corpus_id']] for hit in hits] #type: ignore
     return selected_tools
 
 async def speak(text: str = "") -> tuple:
     try:
+        # Stream TTS audio from Edge and concatenate mp3 chunks
         communicate = edge_tts.Communicate(text, VOICE)
         audio_data = b""
 
@@ -100,19 +111,20 @@ async def speak(text: str = "") -> tuple:
             if chunk['type'] == "audio":
                 audio_data += chunk['data']
 
+        # Convert the streamed mp3 into a 48kHz stereo segment for playback
         audio_segment = AudioSegment.from_file(io.BytesIO(audio_data), format='mp3')
         
-        # 1. Ensure 2-channel stereo output for MAX98357 hardware
-        audio_segment = audio_segment.set_frame_rate(24_000).set_channels(2)
+        # 1. Convert audio to 32-bit sample width (4 bytes) and 48kHz stereo
+        audio_segment = audio_segment.set_frame_rate(48_000).set_channels(2).set_sample_width(4)
         raw_pcm_data = audio_segment.raw_data
 
         p = pyaudio.PyAudio()
         
-        # 2. Pass MIC_DEVICE_INDEX (which points to 'default') for output as well
+        # 2. Use paInt32 format so the VoiceHAT hardware accepts the stream
         stream = p.open(
-            format=p.get_format_from_width(audio_segment.sample_width),
-            channels=audio_segment.channels,
-            rate=audio_segment.frame_rate,
+            format=pyaudio.paInt32,
+            channels=2,
+            rate=48_000,
             output=True,
             output_device_index=MIC_DEVICE_INDEX
         )
@@ -128,12 +140,10 @@ async def speak(text: str = "") -> tuple:
         return f"An error occurred when trying to speak: {e}", False
 
 async def main() -> None:
-    os.environ['AUDIODEV'] = 'null'
-
     recognizer = sr.Recognizer()
     microphone = VoiceHatMicrophone(
         device_index=MIC_DEVICE_INDEX,
-        sample_rate=16_000,
+        sample_rate=48_000,
         chunk_size=1024
     )
 
@@ -177,6 +187,7 @@ async def main() -> None:
                     state = "RECORDING"
 
             elif state == "RECORDING":
+                text = ""
                 
                 with microphone as source:
                     try:
@@ -195,9 +206,6 @@ async def main() -> None:
                         text = await asyncio.to_thread(
                             recognizer.recognize_google, audio_data, language='en-US' #type: ignore
                         )
-                        tools = get_relevant_tools(text)
-                        print(f"You said: {text}")
-                        print(f"Tools available for agent: {tools}")
 
                     except sr.WaitTimeoutError:
                         print("No speech detected...")
@@ -206,19 +214,23 @@ async def main() -> None:
                         print("Could not understand the audio...")
                         text = ""
 
-                    if text:
-                        if "quit" in text.lower():
-                            print("Stopping process...")
-                            sys.exit()
+                if text:
+                    if "quit" in text.lower():
+                        print("Stopping process...")
+                        sys.exit()
 
-                        print("Invoking asynchronous agent request...")
-                        response = await call_agent(text, tools)
+                    tools = get_relevant_tools(text)
+                    print(f"You said: {text}")
+                    print(f"Tools available for agent: {tools}")
 
-                        print(f"\nAgent response: {response}")
-                        speak_response = await speak(response)
-                        if speak_response[1] is not True:
-                            print(f"An error occurred when trying to speak: {speak_response[0]}")
-                            sys.exit()
+                    print("Invoking asynchronous agent request...")
+                    response = await call_agent(text, tools)
+
+                    print(f"\nAgent response: {response}")
+                    speak_response = await speak(response)
+                    if speak_response[1] is not True:
+                        print(f"An error occurred when trying to speak: {speak_response[0]}")
+                        sys.exit()
 
                 OWW_Model.reset()
                 

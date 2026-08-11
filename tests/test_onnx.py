@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Tests for ONNX wakeword model loading and inference utilities.
+"""
+
 import os
 import pyaudio
 import numpy as np

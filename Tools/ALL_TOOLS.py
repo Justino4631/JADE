@@ -1,3 +1,11 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Collection of multiple utility tools (calendar, weather, web, writing)
+flattened into a single module for convenience.
+"""
+
 # ------- Import Section -------
 import os
 import datetime

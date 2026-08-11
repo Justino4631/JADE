@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Flattened tools test module: integrates multiple helper tools for testing.
+"""
+
 # ------- Import Section -------
 import os
 import datetime

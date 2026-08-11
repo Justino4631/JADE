@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Simple local writing tools: notes, todos, and journals storage helpers.
+"""
+
 from strands import tool, Agent
 from strands.models.ollama import OllamaModel
 from datetime import date
@@ -9,12 +16,15 @@ class Writer:
     def __init__(self) -> None:
         self.base_dir = Path.cwd()
         for folder_name in ["notes", "todos", "journals"]:
+            # Ensure storage folders exist for notes, todos, and journals
             (self.base_dir / folder_name).mkdir(parents=True, exist_ok=True)
 
     def _entry_path(self, type_entry: str, file_title: str) -> Path:
+        # Build path for a specific entry type and title
         return self.base_dir / type_entry / f"{file_title}.json"
 
     def _write_json(self, path: Path, payload: dict) -> None:
+        # Persist JSON payload to disk with consistent formatting
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as file:
             json.dump(payload, file, indent=2)
@@ -25,6 +35,7 @@ class Writer:
         today = date.today().strftime("%Y-%m-%d")
         file_name = f"{today}_Notes"
         payload = {"date": today, "content": content}
+        # Write a new note file named by date
         self._write_json(self._entry_path("notes", file_name), payload)
 
     @tool
@@ -36,6 +47,7 @@ class Writer:
         payload = {
             "date": today,
             "todos": [
+                # Each todo includes task text, a completed flag, and optional tag
                 {"task": task, "completed": False, "tag": tags[i] if i < len(tags) else ""}
                 for i, task in enumerate(tasks)
             ],
@@ -59,6 +71,7 @@ class Writer:
         folder = self.base_dir / type_entry
         results = {}
         for file in sorted(folder.glob("*.json")):
+            # Simple substring match against filenames for quick filtering
             if query.lower() in file.name.lower() or not query:
                 with file.open("r", encoding="utf-8") as handle:
                     data = json.load(handle)
@@ -75,7 +88,8 @@ class Writer:
     @tool
     def search_entries(self, query: str = "", type_entry: str = "notes") -> dict:
         """Search writing entries by title or content using a simple substring match."""
-        return self.list_writing_entries(self, query=query, type_entry=type_entry)
+        # Delegate to list_writing_entries for the underlying implementation
+        return self.list_writing_entries(query=query, type_entry=type_entry)
 
     @tool
     def read_entry(self, file_title: str) -> dict:
@@ -98,6 +112,7 @@ class Writer:
         with path.open("r", encoding="utf-8") as handle:
             data = json.load(handle)
 
+        # Find the matching task (case-insensitive) and mark it complete
         todo_match = next((todo for todo in data.get("todos", []) if todo.get("task", "").lower() == task.lower()), None)
         if not todo_match:
             return f"Task '{task}' not found in '{file_title}'"

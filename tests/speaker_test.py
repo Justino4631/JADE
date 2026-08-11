@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Speaker test that streams Edge TTS output to local audio hardware.
+"""
+
 import asyncio
 import edge_tts
 import io

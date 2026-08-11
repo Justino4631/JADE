@@ -1,3 +1,10 @@
+"""author: Justin Baratta
+date: Summer 2026
+version: 3.13.10
+
+Text-to-speech test utilities using Edge TTS and pygame for playback.
+"""
+
 import asyncio
 import edge_tts
 import io
